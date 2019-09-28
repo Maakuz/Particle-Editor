@@ -94,7 +94,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>F:\SPELTJOSAN\ParticleEditor\External\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\SPELTJOSAN\ParticleEditor\External\Include;C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib\x64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\KanskeKulSpel\External\Include\Imgui\misc\cpp\imgui_stdlib.cpp" />
+    <ClCompile Include="..\External\Include\Imgui\imgui.cpp" />
+    <ClCompile Include="..\External\Include\Imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\External\Include\Imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\External\Include\Imgui\SFML-imgui\imgui-SFML.cpp" />
+    <ClCompile Include="Source\Emitter.cpp" />
     <ClCompile Include="Source\Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Emitter.h" />
+    <ClInclude Include="Source\Particle.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
