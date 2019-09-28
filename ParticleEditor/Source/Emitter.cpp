@@ -155,7 +155,11 @@ std::istream& operator>>(std::istream& in, Emitter& emitter)
     in >> emitter.emitterAngle;
     in >> emitter.emitterCone;
     in >> emitter.size.x >> emitter.size.y;
-    in >> emitter.color.r >> emitter.color.g >> emitter.color.b >> emitter.color.a;
+
+    int color[4] = {0};
+
+    in >> color[0] >> color[1] >> color[2] >> color[3];
+    emitter.color = sf::Color(color[0], color[1], color[2], color[3]);
     in >> emitter.affectedByGravity;
 
     return in;

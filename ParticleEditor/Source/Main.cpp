@@ -157,7 +157,7 @@ int main()
                             file.close();
                         }
 
-
+                        emitto.reset();
                         load = false;
                     }
                 }
