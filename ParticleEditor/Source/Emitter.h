@@ -1,6 +1,14 @@
-#pragma once#include "Particle.h"
-#include <vector>
+#pragma once#include <vector>
 #include <sstream>
+#include "SFML/Graphics.hpp"
+
+struct Particle
+{
+    sf::Vector2f velocity;
+    sf::Color color;
+
+    float lifespan;
+};
 
 class Emitter : public sf::Drawable
 {
