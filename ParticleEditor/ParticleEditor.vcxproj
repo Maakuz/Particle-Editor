@@ -140,9 +140,16 @@
     <ClCompile Include="..\External\Include\Imgui\SFML-imgui\imgui-SFML.cpp" />
     <ClCompile Include="Source\Emitter.cpp" />
     <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\ShaderHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Emitter.h" />
+    <ClInclude Include="Source\Light.h" />
+    <ClInclude Include="Source\LightQueue.h" />
+    <ClInclude Include="Source\ShaderHandler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shaders\Lighting.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,7 +1,6 @@
 #include "Emitter.h"
-#include "LightQueue.h"
 
-Emitter::Emitter(sf::Vector2f pos, sf::Vector2f particleSize, sf::Color color, float spawnRate, float particleSpeed, float particleLife, float emitterLife, int initialParticles, int particlesPerSpawn, int startAngle, int spread, float frictionValue, float jitterAmount)
+Emitter::Emitter(sf::Vector2f pos, sf::Vector2f particleSize, sf::Color color, float spawnRate, float particleSpeed, float particleLife, float emitterLife, int initialParticles, int particlesPerSpawn, int startAngle, int spread)
 {
     this->pos = pos;
     this->speed = particleSpeed;
@@ -13,80 +12,34 @@ Emitter::Emitter(sf::Vector2f pos, sf::Vector2f particleSize, sf::Color color, f
     this->particlesPerSpawn = particlesPerSpawn;
     this->emitterAngle = startAngle;
     this->emitterCone = spread;
-    this->frictionValue = frictionValue;
-    this->jitterAmount = jitterAmount;
 
+    this->immortalParticles = false;
+    this->immortalEmitter = false;
     this->affectedByGravity = false;
-    this->particlesHasLight = false; // might be dangerous for framerate to turn on
 
     this->setEmitterLifeSpan(emitterLife);
     this->setParticleLifeSpan(particleLife);
     this->reset();
 }
 
-//Emitter::Emitter(const Emitter& other)
-//{
-//    *this = other;
-//}
-
-//Emitter& Emitter::operator=(const Emitter& other)
-//{
-//    this->affectedByGravity = other.affectedByGravity;
-//    this->color = other.color;
-//    this->emitterAngle = other.emitterAngle;
-//    this->emitterCone = other.emitterCone;
-//    this->emitterDead = other.emitterDead;
-//    this->immortalEmitter = other.immortalEmitter;
-//    this->immortalParticles = other.immortalParticles;
-//    this->initialParticles = other.initialParticles;
-//    this->lifespan = other.lifespan;
-//    this->lifespanCounter = 0;
-//    this->particleLifespan = other.particleLifespan;
-//    this->particles = other.particles;
-//    this->particlesPerSpawn = other.particlesPerSpawn;
-//    this->pos = other.pos;
-//    this->size = other.size;
-//    this->spawnCounter = 0;
-//    this->spawnRate = other.spawnRate;
-//    this->speed = other.speed;
-//    this->vertexArray = other.vertexArray;
-//
-//    for (const EmitterLight light : other.lights)
-//        this->lights.push_back(new Light(light->pos, light->radius, light->color));
-//    return *this;
-//}
-
-
 void Emitter::update(float dt)
 {
-    for (EmitterLight& light : lights)
-        LightQueue::get().queue(light.light);
-
     this->lifespanCounter += dt;
     if (this->lifespanCounter > this->lifespan)
-    {
-        this->emitterDead = true;
-        for (EmitterLight& light : lights)
-        {
-            light.light->color.x *= 0.95f;
-            light.light->color.y *= 0.95f;
-            light.light->color.z *= 0.95f;
-        }
-    }
+        this->emitterdead = true;
 
     this->spawnCounter += dt;
-    if (this->spawnCounter > this->spawnRate && !this->emitterDead)
+    if (this->spawnCounter > this->spawnRate && !this->emitterdead)
     {
         this->spawnCounter = 0;
 
         for (int i = 0; i < particlesPerSpawn; i++)
             this->addParticle();
-
     }
 
     for (size_t i = 0; i < particles.size(); i++)
     {
-        int p = (int)i * 4;
+        int p = i * 4;
         Particle* particle = &particles[i];
 
         if (!this->immortalParticles)
@@ -103,7 +56,7 @@ void Emitter::update(float dt)
         else
         {
             if (this->affectedByGravity)
-                particle->velocity.y += 0.01f * dt;
+                particle->velocity.y += 0.01 * dt;
 
             for (size_t j = 0; j < 4; j++)
             {
@@ -115,7 +68,6 @@ void Emitter::update(float dt)
 
 void Emitter::setParticleLifeSpan(float lifespan)
 {
-    this->immortalParticles = false;
     this->particleLifespan = lifespan;
     if (this->particleLifespan <= 0.00023) //perfect number
     {
@@ -126,7 +78,6 @@ void Emitter::setParticleLifeSpan(float lifespan)
 
 void Emitter::setEmitterLifeSpan(float lifespan)
 {
-    this->immortalEmitter = false;
     this->lifespan = lifespan;
     if (this->lifespan <= 0.00023) //perfect number
     {
@@ -135,29 +86,11 @@ void Emitter::setEmitterLifeSpan(float lifespan)
     }
 }
 
-void Emitter::addLight(sf::Vector2f offset, float radius, sf::Vector3f color)
-{
-    EmitterLight light(this->pos, radius, color, offset);
-    lights.push_back(light);
-}
-
-void Emitter::setEmitterPos(sf::Vector2f pos) 
-{ 
-    this->pos = pos; 
-    for (EmitterLight& light : lights)
-        light.light->pos = pos + light.offset;
-}
-
-bool Emitter::isVeryDead() const
-{
-    return this->emitterDead && particles.empty();
-}
-
 void Emitter::reset()
 {
     this->spawnCounter = 0;
     this->lifespanCounter = 0;
-    this->emitterDead = false;
+    this->emitterdead = false;
 
     this->particles.clear();
     this->vertexArray.clear();
@@ -165,11 +98,6 @@ void Emitter::reset()
     for (int i = 0; i < initialParticles; i++)
     {
         this->addParticle();
-    }
-
-    for (EmitterLight& light : lights)
-    {
-        light.light->color = light.initialColor;
     }
 }
 
@@ -211,18 +139,6 @@ std::ostream& operator<<(std::ostream& out, const Emitter& emitter)
     out << emitter.size.x << " " << emitter.size.y << "\n";
     out << (int)emitter.color.r << " " << (int)emitter.color.g << " " << (int)emitter.color.b << " " << (int)emitter.color.a << "\n";
     out << emitter.affectedByGravity << "\n";
-    out << emitter.jitterAmount << "\n";
-    out << emitter.frictionValue << "\n";
-    out << emitter.particlesHasLight << "\n";
-
-    out << emitter.lights.size() << "\n";
-
-    for (size_t i = 0; i < emitter.lights.size(); i++)
-    {
-        out << emitter.lights[i].offset.x << " " << emitter.lights[i].offset.y << "\n";
-        out << emitter.lights[i].light->radius << "\n";
-        out << emitter.lights[i].initialColor.x << " " << emitter.lights[i].initialColor.y << " " << emitter.lights[i].initialColor.z << "\n";
-    }
 
     return out;
 }
@@ -245,28 +161,6 @@ std::istream& operator>>(std::istream& in, Emitter& emitter)
     in >> color[0] >> color[1] >> color[2] >> color[3];
     emitter.color = sf::Color(color[0], color[1], color[2], color[3]);
     in >> emitter.affectedByGravity;
-    in >> emitter.jitterAmount;
-    in >> emitter.frictionValue;
-    in >> emitter.particlesHasLight;
-
-    int size = 0;
-    in >> size;
-
-    for (int i = 0; i < size; i++)
-    {
-        sf::Vector2f offset;
-        float radius;
-        sf::Vector3f color;
-
-        in >> offset.x >> offset.y;
-        in >> radius;
-        in >> color.x >> color.y >> color.z;
-
-        emitter.lights.push_back(Emitter::EmitterLight(emitter.pos, radius, color, offset));
-    }
-
-    emitter.setEmitterLifeSpan(emitter.lifespan);
-    emitter.setParticleLifeSpan(emitter.particleLifespan);
 
     return in;
 }
