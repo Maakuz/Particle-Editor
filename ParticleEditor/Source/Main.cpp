@@ -73,7 +73,7 @@ int main()
 
     bool repeating = false;
     bool lightOn = false;
-    float zoomLevel = 2;
+    float zoomLevel = 1;
 
     for (int i = 0; i < 3; i++)
     {
@@ -116,7 +116,7 @@ int main()
 
         if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Right))
         {
-            emitto.setEmitterPos(sf::Vector2f(sf::Mouse::getPosition(window)));
+            emitto.setEmitterPos(sf::Vector2f(sf::Mouse::getPosition(window)) / zoomLevel);
         }
 
         //imgui block
@@ -201,6 +201,13 @@ int main()
                 {
                     gridColor = sf::Color(col[0], col[1], col[2]);
                     grid = generateGrid(gridColor);
+                }
+
+                if (ImGui::DragFloat("Zooooom", &zoomLevel, 1, 1, 8))
+                {
+                    view.setSize(WIDTH / zoomLevel, HEIGHT / zoomLevel);
+                    view.setCenter(WIDTH / zoomLevel / 2.f, HEIGHT / zoomLevel / 2.f);
+                    window.setView(view);
                 }
 
                 ImGui::EndTabItem();
