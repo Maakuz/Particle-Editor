@@ -9,6 +9,45 @@ struct Particle
     sf::Color color;
 
     float lifespan;
+    Light* light;
+    Particle(sf::Vector2f velocity, sf::Color color, float life)
+    {
+        this->velocity = velocity;
+        this->color = color;
+        this->lifespan = life;
+        this->light = nullptr;
+    }
+    Particle(const Particle& other)
+    {
+        this->light = nullptr;
+        *this = other;
+    }
+    ~Particle()
+    {
+        delete light;
+    }
+    Particle& operator=(const Particle& other)
+    {
+        this->velocity = other.velocity;
+        this->color = other.color;
+        this->lifespan = other.lifespan;
+
+        if (other.light != nullptr)
+        {
+            if (this->light)
+                delete this->light;
+
+            this->light = new Light(other.light->pos, other.light->radius, other.light->color);
+        }
+        else
+        {
+            if (this->light)
+                delete this->light;
+
+            this->light = nullptr;
+        }
+        return *this;
+    }
 };
 
 class Emitter : public sf::Drawable
@@ -47,9 +86,9 @@ public:
     };
 
     Emitter(sf::Vector2f pos = sf::Vector2f(0, 0), sf::Vector2f particleSize = sf::Vector2f(1, 1), sf::Color color = sf::Color::White, float spawnRate = 500, float particleSpeed = 1, float particleLife = 0, float emitterLife = 0, int initialParticles = 0, int particlesPerSpawn = 1, int startAngle = 0, int spread = 360, float frictionValue = 1, float jitterAmount = 0);
-    //Emitter(const Emitter& other);
-    //Emitter& operator=(const Emitter& other);
-    ~Emitter() {};
+    Emitter(const Emitter& other);
+    Emitter& operator=(const Emitter& other);
+    ~Emitter();
 
     void update(float dt);
 
@@ -70,6 +109,13 @@ public:
     void setConeSize(int size) { this->emitterCone = size; };
     void setSize(sf::Vector2f size) { this->size = size; };
     void setColor(sf::Color color) { this->color = color; };
+    void setColorDeviation(sf::Color color) { this->colorDeviation = color; };
+    void setFriction(float value) { this->frictionValue = value; };
+    void setJitter(float value) { this->jitterAmount = value; };
+
+    //USE RESPONSIBLY
+    void enableParticleLight();
+    void setParticleLightRadius(float radius) { this->particleLightRadius = radius; };
 
     void enableGravity(bool isAffectedByGravity) { this->affectedByGravity = isAffectedByGravity; };
 
@@ -89,7 +135,7 @@ private:
 
     sf::Vector2f pos;
 
-    std::vector<Particle> particles;
+    std::vector<Particle*> particles;
     std::vector<sf::Vertex> vertexArray;
 
     int initialParticles;
@@ -109,6 +155,7 @@ private:
 
     sf::Vector2f size;
     sf::Color color;
+    sf::Color colorDeviation;
 
     bool affectedByGravity;
 
@@ -116,7 +163,11 @@ private:
     bool immortalEmitter;
 
     bool emitterDead;
+
     bool particlesHasLight; //HIGHLY EXPERIMENTAL MAYBE LEAVE THIS AT FALSE FOREVER
+    float particleLightRadius;
+
+
     float jitterAmount;
     float frictionValue;
 

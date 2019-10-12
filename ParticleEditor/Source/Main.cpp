@@ -9,15 +9,20 @@
 #include <filesystem>
 
 namespace fs = std::filesystem;
+void restart(Emitter* emitter);
 
 struct PlayVariables 
 {
     float lifeSpan, particleLife, spawnRate, speed;
     int initailParticles, pps, angle, cone;
     int color[4];
+    int colorDev[4];
     int clearColor[3];
     sf::Vector2f size;
     bool gravityOn;
+    float jitter;
+    float friction;
+    float particleLightRadius;
 
     friend std::istream& operator>>(std::istream& in, PlayVariables& variables)
     {
@@ -33,12 +38,17 @@ struct PlayVariables
         in >> variables.cone;
         in >> variables.size.x >> variables.size.y;
         in >> variables.color[0] >> variables.color[1] >> variables.color[2] >> variables.color[3];
+        in >> variables.colorDev[0] >> variables.colorDev[1] >> variables.colorDev[2] >> variables.colorDev[3];
         in >> variables.gravityOn;
-
+        in >> variables.jitter;
+        in >> variables.friction;
+        in >> trash;
+        in >> variables.particleLightRadius;
         return in;
     };
 };
 
+PlayVariables variables; 
 int main()
 {
     int flag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
@@ -49,11 +59,11 @@ int main()
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Pickle a particle!");
 
     window.setFramerateLimit(120);
-
     sf::RectangleShape fullscreenboi(sf::Vector2f(1920, 1080));
     ShaderHandler shaders;
     sf::RenderTexture renderTargets[3];
 
+    bool repeating = false;
     bool lightOn = false;
 
     for (int i = 0; i < 3; i++)
@@ -61,11 +71,13 @@ int main()
         renderTargets[i].create(1920, 1080);
     }
 
-    PlayVariables variables{ 30000, 3000, 50, 2, 500, 5, 0, 360, sf::Color::Green.r, sf::Color::Green.g, sf::Color::Green.b, sf::Color::Green.a, 0, 0, 0, sf::Vector2f(2, 5), false };
+    Emitter emitto;
+
+    restart(&emitto);
+
     sf::Color color(variables.color[0], variables.color[1], variables.color[2], variables.color[3]);
     sf::Color clearColor(variables.clearColor[0], variables.clearColor[1], variables.clearColor[2]);
 
-    Emitter emitto(sf::Vector2f(500, 500), variables.size, color, variables.spawnRate, variables.speed, variables.particleLife, variables.lifeSpan, variables.initailParticles, variables.pps);
    
     ImGui::SFML::Init(window);
 
@@ -106,7 +118,7 @@ int main()
             {
                 ImGui::DragFloat("Particle lifespan", &variables.particleLife, 1, 0, INT_MAX);
                 ImGui::DragFloat("Emitter lifespan", &variables.lifeSpan, 1, 0, INT_MAX);
-                ImGui::DragFloat("Particle speed", &variables.speed, 0.1f, 0, INT_MAX);
+                ImGui::DragFloat("Particle speed", &variables.speed, 0.01f, 0, INT_MAX);
                 ImGui::DragFloat("Spawn rate", &variables.spawnRate, 1, 0, INT_MAX);
                 ImGui::DragInt("Initial particles", &variables.initailParticles, 1, 0, INT_MAX);
                 ImGui::DragInt("Particle per spawn", &variables.pps, 1, 1, INT_MAX);
@@ -115,77 +127,10 @@ int main()
                 ImGui::DragInt("Angle", &variables.angle, 1, 0, 360);
                 ImGui::DragInt("Cone", &variables.cone, 1, 1, 360);
                 ImGui::DragInt4("Color", variables.color, 1, 0, 255);
-                ImGui::DragInt3("Background color", variables.clearColor, 1, 0, 255);
+                ImGui::DragInt4("Color Deviation", variables.colorDev, 1, 0, 255);
+                ImGui::DragFloat("Friction", &variables.friction, 0.001, 0, 2);
+                ImGui::DragFloat("Jitter", &variables.jitter, 0.001, 0, 1);
 
-                ImGui::Checkbox("Enable gravity", &variables.gravityOn);
-                ImGui::SameLine();
-                ImGui::Checkbox("Enable light", &lightOn);
-
-                ImGui::Text("Microseconds to update: %d", particleUpdateTime.asMicroseconds());
-
-                if (ImGui::Button("Reset!"))
-                    emitto.reset();
-
-                static bool save = false;
-                if (ImGui::Button("Save!"))
-                    save = true;
-
-                if (save)
-                {
-                    ImGui::Begin("Save me please!");
-
-                    ImGui::InputText("Filename", outFileName);
-
-                    if (ImGui::Button("Save!!"))
-                    {
-                        std::ofstream file("../Particles/" + *outFileName + ".part");
-                        if (file.is_open())
-                            file << emitto;
-
-                        file.close();
-
-                        save = false;
-                    }
-                    ImGui::End();
-                }
-
-
-                static bool load = false;
-                if (ImGui::Button("Load!"))
-                    load = true;
-
-                if (load)
-                {
-                    fs::path pathicle = fs::current_path();
-                    pathicle = pathicle.parent_path();
-                    pathicle /= "Particles\\";
-
-                    ImGui::Begin("Load me please!");
-                    for (const auto& file : fs::directory_iterator(pathicle))
-                    {
-                        if (ImGui::Button(file.path().filename().string().c_str())) //Hm().MM
-                        {
-                            std::ifstream file(file.path().string());
-                            if (file.is_open())
-                            {
-                                file >> emitto;
-                                file.clear();
-                                file.seekg(0, std::ios::beg);
-
-                                file >> variables;
-
-                                file.close();
-                            }
-
-                            emitto.reset();
-                            load = false;
-                        }
-                    }
-
-
-
-                    ImGui::End();
-                }
                 ImGui::EndTabItem();
             }
 
@@ -196,9 +141,7 @@ int main()
                     emitto.addLight(sf::Vector2f(0, 0), 100, sf::Vector3f(1, 1, 1));
                 }
 
-                ImGui::SameLine();
-                ImGui::Checkbox("Enable light", &lightOn);
-
+                ImGui::DragFloat("Particle light radius", &variables.particleLightRadius, 1, 0, 200);
                 ImGui::Separator();
                 ImGui::BeginChild("LightList", sf::Vector2i(0, -200));
 
@@ -210,20 +153,24 @@ int main()
 
                     Emitter::EmitterLight* light = &emitto.getLights()->at(i);
                     
-                    float col[3] = { light->light->color.x, light->light->color.y, light->light->color.z };
+                    float col[3] = { light->initialColor.x, light->initialColor.y, light->initialColor.z };
                     float pos[2] = { light->offset.x, light->offset.y};
                     
                     ImGui::DragFloat(radiuslabel.c_str(), &light->light->radius, 1, 0, 3000);
-                    ImGui::ColorEdit3(collabel.c_str(), col);
+                    if (ImGui::ColorEdit3(collabel.c_str(), col))
+                    {
+                        light->light->color.x = col[0];
+                        light->light->color.y = col[1];
+                        light->light->color.z = col[2];
+                        light->initialColor.x = col[0];
+                        light->initialColor.y = col[1];
+                        light->initialColor.z = col[2];
+                    }
+
                     ImGui::DragFloat2(poslabel.c_str(), pos, 1, -1000, 1000);
                     ImGui::Separator();
 
-                    light->light->color.x = col[0];
-                    light->light->color.y = col[1];
-                    light->light->color.z = col[2];
-                    light->initialColor.x = col[0];
-                    light->initialColor.y = col[1];
-                    light->initialColor.z = col[2];
+                   
                     light->offset.x = pos[0];
                     light->offset.y = pos[1];
                     light->light->pos = emitto.getEmitterPos() + light->offset;
@@ -237,8 +184,97 @@ int main()
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();
+
+            ImGui::DragInt3("Background color", variables.clearColor, 1, 0, 255);
+            ImGui::Checkbox("Enable gravity", &variables.gravityOn);
+            ImGui::SameLine();
+            ImGui::Checkbox("Enable light", &lightOn);
+            ImGui::SameLine();
+            ImGui::Checkbox("Repeating", &repeating);
+            ImGui::SameLine();
+            if (ImGui::Button("ENABLE PARTICLELIGHT?!"))
+                emitto.enableParticleLight();
+
+            ImGui::Text("Microseconds to update: %d", particleUpdateTime.asMicroseconds());
+
+            if (ImGui::Button("Reset!"))
+                emitto.reset();
+
+            ImGui::SameLine();
+            static bool save = false;
+            if (ImGui::Button("Save!"))
+                save = true;
+
+            ImGui::SameLine();
+            static bool load = false;
+            if (ImGui::Button("Load!"))
+                load = true;
+
+            ImGui::SameLine();
+            if (ImGui::Button("New!"))
+            {
+                restart(&emitto);
+            }
+
+
+            if (save)
+            {
+                ImGui::Begin("Save me please!");
+
+                ImGui::InputText("Filename", outFileName);
+
+                if (ImGui::Button("Save!!"))
+                {
+                    std::ofstream file("../Particles/" + *outFileName + ".part");
+                    if (file.is_open())
+                        file << emitto;
+
+                    file.close();
+
+                    save = false;
+                }
+                ImGui::End();
+            }
+
+            if (load)
+            {
+                fs::path pathicle = fs::current_path();
+                pathicle = pathicle.parent_path();
+                pathicle /= "Particles\\";
+
+                ImGui::Begin("Load me please!");
+                for (const auto& file : fs::directory_iterator(pathicle))
+                {
+                    if (ImGui::Button(file.path().filename().string().c_str())) //Hm().MM
+                    {
+                        std::ifstream file(file.path().string());
+                        if (file.is_open())
+                        {
+                            file >> emitto;
+                            file.clear();
+                            file.seekg(0, std::ios::beg);
+
+                            file >> variables;
+
+                            file.close();
+                        }
+
+                        emitto.reset();
+                        load = false;
+                    }
+                }
+
+
+
+                ImGui::End();
+            }
+
             ImGui::End();
         }
+
+        if (repeating)
+            if (emitto.isVeryDead())
+                emitto.reset();
 
         emitto.setParticleLifeSpan(variables.particleLife);
         emitto.setEmitterLifeSpan(variables.lifeSpan);
@@ -250,6 +286,9 @@ int main()
         emitto.enableGravity(variables.gravityOn);
         emitto.setAngle(variables.angle);
         emitto.setConeSize(variables.cone);
+        emitto.setFriction(variables.friction);
+        emitto.setJitter(variables.jitter);
+        emitto.setParticleLightRadius(variables.particleLightRadius);
 
         updateTimer.restart();
         emitto.update(deltatime.asMilliseconds());
@@ -260,6 +299,12 @@ int main()
         color.b = variables.color[2];
         color.a = variables.color[3];
         emitto.setColor(color);
+
+        color.r = variables.colorDev[0];
+        color.g = variables.colorDev[1];
+        color.b = variables.colorDev[2];
+        color.a = variables.colorDev[3];
+        emitto.setColorDeviation(color);
 
         clearColor.r = variables.clearColor[0];
         clearColor.g = variables.clearColor[1];
@@ -308,4 +353,18 @@ int main()
     delete outFileName;
     ImGui::SFML::Shutdown();
     return 0;
+}
+
+void restart(Emitter* emitter)
+{
+    variables = { 30000, 3000, 50, 2, 500, 5, 0, 360,
+        sf::Color::Green.r, sf::Color::Green.g, sf::Color::Green.b, sf::Color::Green.a,
+        0, 0, 0, 0,
+        0, 0, 0, sf::Vector2f(2, 5), false, 0, 1, 50 };
+
+    sf::Color color(variables.color[0], variables.color[1], variables.color[2], variables.color[3]);
+
+
+    *emitter = Emitter(sf::Vector2f(500, 500), variables.size, color, variables.spawnRate, variables.speed, variables.particleLife, variables.lifeSpan, variables.initailParticles, variables.pps);
+    
 }
