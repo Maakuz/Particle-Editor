@@ -10,6 +10,7 @@
 
 namespace fs = std::filesystem;
 void restart(Emitter* emitter);
+sf::VertexArray generateGrid(sf::Color color, float size = 32);
 
 struct PlayVariables 
 {
@@ -49,6 +50,9 @@ struct PlayVariables
 };
 
 PlayVariables variables; 
+
+const int WIDTH = 1920;
+const int HEIGHT = 1080;
 int main()
 {
     int flag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
@@ -56,15 +60,20 @@ int main()
     _CrtSetDbgFlag(flag);
     //_CrtSetBreakAlloc(689); // Comment or un-comment on need basis
 
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Pickle a particle!");
+    sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Pickle a particle!");
 
     window.setFramerateLimit(120);
-    sf::RectangleShape fullscreenboi(sf::Vector2f(1920, 1080));
+    sf::RectangleShape fullscreenboi(sf::Vector2f(WIDTH, HEIGHT));
     ShaderHandler shaders;
     sf::RenderTexture renderTargets[3];
+    sf::View view;
+
+    sf::Color gridColor(sf::Color::Magenta);
+    sf::VertexArray grid = generateGrid(gridColor);
 
     bool repeating = false;
     bool lightOn = false;
+    float zoomLevel = 2;
 
     for (int i = 0; i < 3; i++)
     {
@@ -180,6 +189,19 @@ int main()
                 ImGui::EndChild();
                 ImGui::Separator();
 
+
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Editor"))
+            {
+                float col[3] = { gridColor.r, gridColor.g, gridColor.b };
+
+                if (ImGui::DragFloat3("grid color", col))
+                {
+                    gridColor = sf::Color(col[0], col[1], col[2]);
+                    grid = generateGrid(gridColor);
+                }
 
                 ImGui::EndTabItem();
             }
@@ -311,6 +333,8 @@ int main()
         clearColor.b = variables.clearColor[2];
 
         window.clear(clearColor);
+
+        window.draw(grid);
         renderTargets[0].clear(sf::Color::Transparent);
         for (size_t i = 0; i < LightQueue::get().getQueue().size(); i++)
         {
@@ -367,4 +391,27 @@ void restart(Emitter* emitter)
 
     *emitter = Emitter(sf::Vector2f(500, 500), variables.size, color, variables.spawnRate, variables.speed, variables.particleLife, variables.lifeSpan, variables.initailParticles, variables.pps);
     
+}
+
+sf::VertexArray generateGrid(sf::Color color, float size)
+{
+    sf::VertexArray grid(sf::PrimitiveType::Lines);
+
+    for (int i = 0; i < WIDTH / size; i++)
+    {
+        sf::Vertex v(sf::Vector2f(i * size, 0), color);
+        grid.append(v);
+        v.position.y = HEIGHT;
+        grid.append(v);
+    }
+
+    for (int i = 0; i < HEIGHT / size; i++)
+    {
+        sf::Vertex v(sf::Vector2f(0, i * size), color);
+        grid.append(v);
+        v.position.x = WIDTH;
+        grid.append(v);
+    }
+
+    return grid;
 }
