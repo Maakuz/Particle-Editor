@@ -7,6 +7,7 @@
 #include "ShaderHandler.h"
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 
 namespace fs = std::filesystem;
 void restart(Emitter* emitter);
@@ -95,7 +96,7 @@ int main()
     sf::Time deltatime;
     sf::Time particleUpdateTime;
 
-    std::string* outFileName = new std::string("Filename");
+    std::string* outFileName = new std::string("");
 
     while (window.isOpen())
     {
@@ -106,6 +107,16 @@ int main()
                 window.close();
 
             ImGui::SFML::ProcessEvent(event);
+
+            if (event.type == sf::Event::MouseWheelMoved)
+            {
+                zoomLevel += event.mouseWheelScroll.wheel;
+                if (zoomLevel < 1)
+                    zoomLevel = 1;
+
+                if (zoomLevel > 8)
+                    zoomLevel = 8;
+            }
         }
 
         deltatime = clock.restart();
@@ -197,18 +208,13 @@ int main()
             {
                 float col[3] = { gridColor.r, gridColor.g, gridColor.b };
 
-                if (ImGui::DragFloat3("grid color", col))
+                if (ImGui::DragFloat3("grid color", col, 1, 0, 255))
                 {
                     gridColor = sf::Color(col[0], col[1], col[2]);
                     grid = generateGrid(gridColor);
                 }
 
-                if (ImGui::DragFloat("Zooooom", &zoomLevel, 1, 1, 8))
-                {
-                    view.setSize(WIDTH / zoomLevel, HEIGHT / zoomLevel);
-                    view.setCenter(WIDTH / zoomLevel / 2.f, HEIGHT / zoomLevel / 2.f);
-                    window.setView(view);
-                }
+                ImGui::DragFloat("Zooooom", &zoomLevel, 1, 1, 8);
 
                 ImGui::EndTabItem();
             }
@@ -224,6 +230,8 @@ int main()
             if (ImGui::Button("ENABLE PARTICLELIGHT?!"))
                 emitto.enableParticleLight();
 
+            ImGui::Text("Particles: %d,", emitto.getNrOfParticles());
+            ImGui::SameLine();
             ImGui::Text("Microseconds to update: %d", particleUpdateTime.asMicroseconds());
 
             if (ImGui::Button("Reset!"))
@@ -248,7 +256,7 @@ int main()
 
             if (save)
             {
-                ImGui::Begin("Save me please!");
+                ImGui::Begin("Save me please!", &save);
 
                 ImGui::InputText("Filename", outFileName);
 
@@ -271,7 +279,7 @@ int main()
                 pathicle = pathicle.parent_path();
                 pathicle /= "Particles\\";
 
-                ImGui::Begin("Load me please!");
+                ImGui::Begin("Load me please!", &load);
                 for (const auto& file : fs::directory_iterator(pathicle))
                 {
                     if (ImGui::Button(file.path().filename().string().c_str())) //Hm().MM
@@ -300,6 +308,10 @@ int main()
 
             ImGui::End();
         }
+
+        view.setSize(WIDTH / zoomLevel, HEIGHT / zoomLevel);
+        view.setCenter(WIDTH / zoomLevel / 2.f, HEIGHT / zoomLevel / 2.f);
+        window.setView(view);
 
         if (repeating)
             if (emitto.isVeryDead())
