@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 void restart(Emitter* emitter);
-sf::VertexArray generateGrid(sf::Color color, float size = 32);
+sf::VertexArray generateGrid(sf::Color color, float size = 64);
 
 struct PlayVariables 
 {
