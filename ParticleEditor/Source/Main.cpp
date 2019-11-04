@@ -130,6 +130,7 @@ int main()
             emitto.setEmitterPos(sf::Vector2f(sf::Mouse::getPosition(window)) / zoomLevel);
         }
 
+
         //imgui block
         {
             ImGui::Begin("Lekrutan");
@@ -330,6 +331,10 @@ int main()
         emitto.setFriction(variables.friction);
         emitto.setJitter(variables.jitter);
         emitto.setParticleLightRadius(variables.particleLightRadius);
+
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::T))
+            emitto.kill();
 
         updateTimer.restart();
         emitto.update(deltatime.asMilliseconds());

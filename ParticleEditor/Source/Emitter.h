@@ -114,6 +114,7 @@ public:
     void setColorDeviation(sf::Color color) { this->colorDeviation = color; };
     void setFriction(float value) { this->frictionValue = value; };
     void setJitter(float value) { this->jitterAmount = value; };
+    void kill();
 
     //USE RESPONSIBLY
     void enableParticleLight();
@@ -161,7 +162,6 @@ private:
 
     bool affectedByGravity;
 
-    bool immortalParticles;
     bool immortalEmitter;
 
     bool emitterDead;
